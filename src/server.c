@@ -55,21 +55,25 @@ int main() {
          */
         clientaddr[i] = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
         recvfrom(sockfd, buf, BUFSIZE, 0, (struct sockaddr *)clientaddr[i], &clientlen);
-
-        sleep(2);
-        printf("Envoi du message ne cours...\n");
-        /*
-         * sendto: réecrit à tout les clients ce qu'il a reçu
-         */
-        length = i + 1;
-        for(int k = 0; k < length; k++) {
-            n = sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *) clientaddr[k], clientlen);
-            if (n < 0)
-                perror("error sendto");
-            else
-                printf("Message n°%d envoyé...\n",k);
-        }
-        i++;
+        
+        // Si la socket renvoi un @, ca veux dire qu'il s'est connecté.
+        if ( buf[0] == '@' ) {	
+			i++;
+		} else {
+			sleep(2);
+			printf("Envoi du message ne cours...\n");
+			/*
+			 * sendto: réecrit à tout les clients ce qu'il a reçu
+			 */
+			length = i;
+			for(int k = 0; k < length; k++) {
+				n = sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *) clientaddr[k], clientlen);
+				if (n < 0)
+					perror("error sendto");
+				else
+					printf("Message n°%d envoyé...\n",k);
+			}
+		}
     }
 
     //Fermeture de la socket

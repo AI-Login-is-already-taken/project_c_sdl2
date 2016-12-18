@@ -45,6 +45,9 @@ void *task_b (void *p_data)
 		char charx2[20];
 		char chary2[20];
 		
+		char largeur[30];
+		char hauteur[30];
+		
 		char image[30];
 		
 		int a;
@@ -106,15 +109,6 @@ void *task_b (void *p_data)
 				displayQuit();
 				exit(0);
 				break;
-			default:
-				printf("Commande :\n");
-				printf("   - C <A> <R> <G> <B> pour effacer la fenètre.\n");
-				printf("   - L <X1> <Y1> <X2> <Y2> <A> <R> <G> <B> pour tracer une ligne.\n");
-				printf("   - R <X> <Y> <Largeur> <Hauteur> <A> <R> <G> <B> pour tracer un rectangle.\n");
-				printf("   - I <image.png> <X> <Y> pour dessiner une image.\n");
-				printf("   - H pour voir les commandes.\n");
-				printf("   - Q pour quitter.\n");
-				break;
 		}
 	}
 	pthread_exit(NULL);
@@ -141,7 +135,7 @@ int main(int argc, char *argv[]){
     pthread_t tb;
     pthread_create (&tb, NULL, task_b, NULL);
     
-    sendto(s, " ", 30, 0, (struct sockaddr*) &adr, sizeof(adr));
+    sendto(s, "@", 30, 0, (struct sockaddr*) &adr, sizeof(adr));
     
 	int quit = 0;
 	while(!quit) 
@@ -152,9 +146,19 @@ int main(int argc, char *argv[]){
 		scanf("%29[^\r\n]", cmd);
 		while(getchar()!='\n'){}; //vider buffer	
 		
-		sendto(s, cmd, 30, 0, (struct sockaddr*) &adr, sizeof(adr));
-		sleep(2);
-		printf("Commande envoyé !\n");
+		if ( cmd[0] == 'H' ) {
+			printf("Commande :\n");
+			printf("   - C <A> <R> <G> <B> pour effacer la fenètre.\n");
+			printf("   - L <X1> <Y1> <X2> <Y2> <A> <R> <G> <B> pour tracer une ligne.\n");
+			printf("   - R <X> <Y> <Largeur> <Hauteur> <A> <R> <G> <B> pour tracer un rectangle.\n");
+			printf("   - I <image.png> <X> <Y> pour dessiner une image.\n");
+			printf("   - H pour voir les commandes.\n");
+			printf("   - Q pour quitter.\n");
+		} else {
+			sendto(s, cmd, 30, 0, (struct sockaddr*) &adr, sizeof(adr));
+			sleep(2);
+			printf("Commande envoyé !\n");
+		}
 	}
 	//Fermeture de la socket
 	close (s);
