@@ -147,7 +147,7 @@ int main(int argc, char *argv[]){
 		while(getchar()!='\n'){}; //vider buffer	
 		
 		if ( cmd[0] == 'H' ) {
-			printf("Commande :\n");
+			printf("Commande : \n");
 			printf("   - C <A> <R> <G> <B> pour effacer la fenètre.\n");
 			printf("   - L <X1> <Y1> <X2> <Y2> <A> <R> <G> <B> pour tracer une ligne.\n");
 			printf("   - R <X> <Y> <Largeur> <Hauteur> <A> <R> <G> <B> pour tracer un rectangle.\n");
