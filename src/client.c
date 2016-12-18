@@ -45,9 +45,6 @@ void *task_b (void *p_data)
 		char charx2[20];
 		char chary2[20];
 		
-		char largeur[20];
-		char hauteur[20];
-		
 		char image[30];
 		
 		int a;
@@ -95,11 +92,9 @@ void *task_b (void *p_data)
 				displayPersistentScreen();
 				break;
 			case 'I':
-				sscanf(buffer, "%s %s %s %s %s %s", lettre, image, charx1, chary1, largeur, hauteur);
+				sscanf(buffer, "%s %s %s %s", lettre, image, charx1, chary1);
 				int xi = atoi(charx1);
 				int yi = atoi(chary1);
-				int li = atoi(largeur);
-				int hi = atoi(hauteur);
 				
 				int width, height;
 				void *pixels;
@@ -107,7 +102,18 @@ void *task_b (void *p_data)
 				displayPixels(pixels,xi,yi,width,height,1, false);
 				
 				break;
-			case 'Q': 
+			case 'Q':
+				displayQuit();
+				exit(0);
+				break;
+			default:
+				printf("Commande :\n");
+				printf("   - C <A> <R> <G> <B> pour effacer la fenètre.\n");
+				printf("   - L <X1> <Y1> <X2> <Y2> <A> <R> <G> <B> pour tracer une ligne.\n");
+				printf("   - R <X> <Y> <Largeur> <Hauteur> <A> <R> <G> <B> pour tracer un rectangle.\n");
+				printf("   - I <image.png> <X> <Y> pour dessiner une image.\n");
+				printf("   - H pour voir les commandes.\n");
+				printf("   - Q pour quitter.\n");
 				break;
 		}
 	}
@@ -134,6 +140,8 @@ int main(int argc, char *argv[]){
     
     pthread_t tb;
     pthread_create (&tb, NULL, task_b, NULL);
+    
+    sendto(s, " ", 30, 0, (struct sockaddr*) &adr, sizeof(adr));
     
 	int quit = 0;
 	while(!quit) 
