@@ -69,7 +69,6 @@ int main(){
 		
 		sleep(2);		
 		printf("Envoi du message ne cours...\n");
-		sendto(sockfd, tmp, recu, 0, (struct sockaddr *)clientaddr[0], sizeof(adr));
 		/* 
 		 * sendto: réecrit à tout les clients ce qu'il a reçu
 		 */
