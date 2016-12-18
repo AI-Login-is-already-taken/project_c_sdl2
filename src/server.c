@@ -60,7 +60,6 @@ int main(){
          */    
         clientaddr[i] = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
 		hostp = (struct hostent *)malloc(sizeof(struct hostent));
-		bzero(buf, BUFSIZE);
 		recvfrom(sockfd, buf, BUFSIZE, 0, (struct sockaddr *)clientaddr[i], &clientlen);
 		if (recu < 0)
 			perror("erreur dans le recvfrom\n");
