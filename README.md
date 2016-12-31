@@ -5,8 +5,6 @@ Use of SDL2 library.
 
 ###Packages :
 - [libsdl2-dev](http://packages.ubuntu.com/trusty/libsdl2-dev)
-- [libpng16-dev](http://packages.ubuntu.com/xenial/libpng16-dev)
-- [libjpeg62-dev](http://packages.ubuntu.com/fr/trusty/libjpeg62-dev)
 
 ## Motivation
 

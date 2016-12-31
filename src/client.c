@@ -8,102 +8,80 @@
 #include "display.h"
 #include <pthread.h>
 #include <stdlib.h>
-#include "readPNG.h"
 
-int s;
-struct sockaddr_in adr;
+int sock;
+struct sockaddr_in server_adr;
 
-void *task_a (void *p_data)
+/*
+ * Thread qui permet de gerer l'affichage de la fenetre
+ */
+void *task_checkEvents (void *p_data)
 {
-	while ( !checkEvents() );
-	
+	while (!checkEvents());	
 	displayQuit();	
 	pthread_exit(NULL);
 }
 
-void *task_b (void *p_data)
+/*
+ * Thread qui permet de gerer les paquets recu.
+ */
+void *task_receiveCommands (void *p_data)
 {
 	while ( 1 ) {
 		char buffer[300];
-		unsigned int taille = sizeof(adr);
-		int len = recvfrom(s, buffer, sizeof(buffer)-1, 0, (struct sockaddr*) &adr, &taille);
+		unsigned int taille = sizeof(server_adr); // unsigned : nombre positif seulement
+		if(recvfrom(sock, buffer, sizeof(buffer)-1, 0, (struct sockaddr*) &server_adr, &taille)<0)
+			perror("Error recvfrom : L28 - client.c");
+	
+		char valueLetter[2];		
+		memcpy(valueLetter, &buffer[0], 1); // Copie le premier byte de buffer dans valueLetter
+		valueLetter[1] = '\0'; //On termine par le caractère de fin de chaine
 		
-		//printf("Buff: %s \n",buffer);
-		char subbuff[2];
-		memcpy( subbuff, &buffer[0], 1 );
-		subbuff[1] = '\0';
-		
-		char lettre[20];
-		
-		char alpha[20];
-		char rouge[20];
-		char vert[20];
-		char bleu[20];
-		
-		char charx1[20];
-		char chary1[20];
-		char charx2[20];
-		char chary2[20];
-		
-		char largeur[30];
-		char hauteur[30];
-		
-		char image[30];
-		
-		int a;
-		int r;
-		int v;
-		int b;		
-		
-		switch (subbuff[0]) {
-			case 'C':
-				sscanf(buffer, "%s %s %s %s %s", lettre, alpha, rouge, vert, bleu);
+		// Initilisation des différentes variables utilisées
+		char lettre[20], alpha[20], red[20], green[20], blue[20];		
+		char charx1[20], chary1[20], charx2[20], chary2[20];		
+		char width[30], hight[30];		
+		char image[30];		
+		int a,r,v,b;			
+		int x1,x2,y1,y2;		
+		int x,y,l,h;
+				
+		// Switch de la lettre pour différencier la commande recu.
+		switch (valueLetter[0]) {
+			case 'R':
+				sscanf(buffer, "%s %s %s %s %s %s %s %s %s", lettre, charx1, chary1, width, hight, alpha, red, green, blue);
 				a = atoi(alpha);
-				r = atoi(rouge);
-				v = atoi(vert);
-				b = atoi(bleu);
-				//printf("Alpha: %d R: %d V: %d B: %d\n", a, r, v, b);
+				r = atoi(red);
+				v = atoi(green);
+				b = atoi(blue);
+				x = atoi(charx1);
+				y = atoi(chary1);
+				l = atoi(width);
+				h = atoi(hight);
+				displayDrawRect(x, y, l, h, a, r, v, b, true);
+				displayPersistentScreen();
+				break;
+			case 'C':
+				sscanf(buffer, "%s %s %s %s %s", lettre, alpha, red, green, blue);
+				a = atoi(alpha);
+				r = atoi(red);
+				v = atoi(green);
+				b = atoi(blue);
 				displayDrawRect(0, 0, 3000, 3000, a, r, v, b, true);
 				displayPersistentScreen();
 				break;
 			case 'L': 
-				sscanf(buffer, "%s %s %s %s %s %s %s %s %s", lettre, charx1, chary1, charx2, chary2, alpha, rouge, vert, bleu);
+				sscanf(buffer, "%s %s %s %s %s %s %s %s %s", lettre, charx1, chary1, charx2, chary2, alpha, red, green, blue);
 				a = atoi(alpha);
-				r = atoi(rouge);
-				v = atoi(vert);
-				b = atoi(bleu);
-				int x1 = atoi(charx1);
-				int x2 = atoi(charx2);
-				int y1 = atoi(chary1);
-				int y2 = atoi(chary2);
-				//printf("Alpha: %d R: %d V: %d B: %d X1: %d X2: %d Y1: %d Y2: %d\n", a, r, v, b, x1, x2, y1, y2);
+				r = atoi(red);
+				v = atoi(green);
+				b = atoi(blue);
+				x1 = atoi(charx1);
+				x2 = atoi(charx2);
+				y1 = atoi(chary1);
+				y2 = atoi(chary2);
 				displayDrawLine(x1, y1, x2, y2, a, r, v, b);
 				displayPersistentScreen();
-				break;
-			case 'R':
-				sscanf(buffer, "%s %s %s %s %s %s %s %s %s", lettre, charx1, chary1, largeur, hauteur, alpha, rouge, vert, bleu);
-				a = atoi(alpha);
-				r = atoi(rouge);
-				v = atoi(vert);
-				b = atoi(bleu);
-				int x = atoi(charx1);
-				int y = atoi(chary1);
-				int l = atoi(largeur);
-				int h = atoi(hauteur);
-				//printf("Alpha: %d R: %d V: %d B: %d X: %d Y: %d Largeur: %d Hauteur: %d\n", a, r, v, b, x, y, l, h);
-				displayDrawRect(x, y, l, h, a, r, v, b, true);
-				displayPersistentScreen();
-				break;
-			case 'I':
-				sscanf(buffer, "%s %s %s %s", lettre, image, charx1, chary1);
-				int xi = atoi(charx1);
-				int yi = atoi(chary1);
-				
-				int width, height;
-				void *pixels;
-				pngReadFile(image, &width, &height, &pixels);
-				displayPixels(pixels,xi,yi,width,height,1, false);
-				
 				break;
 			case 'Q':
 				displayQuit();
@@ -114,54 +92,64 @@ void *task_b (void *p_data)
 	pthread_exit(NULL);
 }
 
-int main(int argc, char *argv[]){
-  
-	printf("#########################\n");
-	printf("#########CLIENT##########\n");
-	printf("#########################\n");
+/*
+ * Fonction qui affiche l'aide
+ */
+void help() {
+	printf("Commande :\n");
+	printf("   - C <A> <R> <G> <B> pour effacer la fenètre.\n");
+	printf("   - L <X1> <Y1> <X2> <Y2> <A> <R> <G> <B> pour tracer une ligne.\n");
+	printf("   - R <X> <Y> <width> <hight> <A> <R> <G> <B> pour tracer un rectangle.\n");
+	printf("   - H pour voir les commandes.\n");
+	printf("   - Q pour quitter.\n");
+}
 
-	s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (s<0) perror("socket");
+void main(){	
+    //Ouverture socket en mode UDP, datagramme, sur le domaine AF_INET
+	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-	adr.sin_family = AF_INET;
-	adr.sin_port = htons(1234);
-	adr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    //Configuration adresse du server
+	server_adr.sin_family = AF_INET; // Connection inter-réseaux (UDP,TCP,etc)
+	server_adr.sin_port = htons(2222); // Port de l'app
+	server_adr.sin_addr.s_addr = inet_addr("127.0.0.1"); // Adresse de l'app
 	
-	displayInit("test",800,600);	
+    //Initialisation de la zone de dessin
+	displayInit("ProjetRéseauC",600,800);	
 	
-	pthread_t ta;
-    pthread_create (&ta, NULL, task_a, NULL);
+    //Création des threads pour permettre de gerer plusieurs fonctons en même temps.
+	pthread_t threadCheckEvents, threadCommands;
+    pthread_create (&threadCheckEvents, NULL, task_checkEvents, NULL); // Gère l'affichage de la fenetre
+    pthread_create (&threadCommands, NULL, task_receiveCommands, NULL); // Recoie les commandes du serveur
     
-    pthread_t tb;
-    pthread_create (&tb, NULL, task_b, NULL);
+    //Envoi du paquet de 'reconnaissance', qui permet au server de savoir si un nouveau client est connecté.
+    if(sendto(sock, "@", 30, 0, (struct sockaddr*) &server_adr, sizeof(server_adr))<0)
+        perror("Error sendto : L112 - client.c");
     
-    sendto(s, "@", 30, 0, (struct sockaddr*) &adr, sizeof(adr));
-    
-	int quit = 0;
-	while(!quit) 
-	{
-		//Envoyez un message				
+    int exit = 0;
+    // Boucle principale, tant qu'il n'a pas quitté
+	while(!exit) { 
 		char cmd[30];
-		printf("Commande a envoyer (q pour quitter):\n");
+		printf("Entrez une commande (H pour voir les commandes):\n");
+		// Récupération de la commande tappé
+		// Regex : Longueur max de 30-1 (Eviter overflow). Avec forcement un caratère de fin de ligne a la fin de la commande.
 		scanf("%29[^\r\n]", cmd);
-		while(getchar()!='\n'){}; //vider buffer	
+		while(getchar()!='\n'){}; // Vidage du buffer
 		
-		if ( cmd[0] == 'H' ) {
-			printf("Commande : \n");
-			printf("   - C <A> <R> <G> <B> pour effacer la fenètre.\n");
-			printf("   - L <X1> <Y1> <X2> <Y2> <A> <R> <G> <B> pour tracer une ligne.\n");
-			printf("   - R <X> <Y> <Largeur> <Hauteur> <A> <R> <G> <B> pour tracer un rectangle.\n");
-			printf("   - I <image.png> <X> <Y> pour dessiner une image.\n");
-			printf("   - H pour voir les commandes.\n");
-			printf("   - Q pour quitter.\n");
+		// Si il n'a choisi de quitter
+		if(cmd[0] != 'Q') { 
+			// Si la personne a indiqué H en commande ou si c'est sa première connexion
+			if (cmd[0] == 'H' || cmd[0] == '@') { 
+				help();
+			} else {				
+				//Envoi du paquet avec la commande, vers le serveur.
+				if(sendto(sock, cmd, 30, 0, (struct sockaddr*) &server_adr, sizeof(server_adr))<0)
+					perror("Error sendto : L127 - client.c");
+				else
+					printf("Commande envoyée avec succés...\n");
+			}
 		} else {
-			sendto(s, cmd, 30, 0, (struct sockaddr*) &adr, sizeof(adr));
-			sleep(2);
-			printf("Commande envoyé !\n");
+			exit = 1;
 		}
-	}
-	//Fermeture de la socket
-	close (s);
-
-	return 0;
+	}	
+	close(sock);
 }

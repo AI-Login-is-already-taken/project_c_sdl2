@@ -6,78 +6,50 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <stdlib.h>
-
 #include <netdb.h>
 
-#define BUFSIZE 100
-#define MAX_CLIENTS 100
+#define MSGSIZE 100
+#define CLIENTS_MAX 100
 
 int main() {
-    printf("#########################\n");
-    printf("#########SERVEUR#########\n");
-    printf("#########################\n");
-
     unsigned int clientlen;
-    int i=0;
-    int length = 0;
-    int n;
-    int sockfd;
+    int nbClients=0;
+    int sock;
 
-    struct sockaddr_in *clientaddr[MAX_CLIENTS]; /* adresse client */
-    struct sockaddr_in adr;
-    char buf[BUFSIZE]; /* message du buffer */
+    struct sockaddr_in *clientaddr[CLIENTS_MAX]; // Tableau des clients
+    struct sockaddr_in client_adr; // Client courant
+    char buf[MSGSIZE]; // Buffer avec taillé prédéfinie
 
-    /*
-     * socket: créer un socket parent
-     */
-    sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (sockfd<0) perror("socket");
+    //Ouverture socket en mode UDP, datagramme, sur le domaine AF_INET
+    sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-    /*
-     * créer l'adresse internet du serveur
-     */
-    adr.sin_family = AF_INET;
-    adr.sin_port = htons(1234);
-    adr.sin_addr.s_addr = INADDR_ANY;
+    //Configuration adresse du client
+	client_adr.sin_family = AF_INET; // Connection inter-réseaux (UDP,TCP,etc)
+	client_adr.sin_port = htons(2222); // Port de l'app
+    client_adr.sin_addr.s_addr = INADDR_ANY; // Peut importe l'adresse recu !
+    
+    //Fourni un nom à la socket  
+    bind(sock, (struct sockaddr*) &client_adr, sizeof(client_adr));
 
-    /*
-     * bind: associe les sockets parents au port défini
-     */
-    if (bind(sockfd, (struct sockaddr*) &adr, sizeof(adr))<0)
-        perror("bind");
-
-    while (1)
-    {
+    // Boucle principale, infini.
+    while (1) {
         clientlen = sizeof(struct sockaddr_in);
         printf("En attente d'un message...\n");
-        /*
-         * recvfrom: reçoit un datagrame de type UDP d'un client
-         */
-        clientaddr[i] = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
-        recvfrom(sockfd, buf, BUFSIZE, 0, (struct sockaddr *)clientaddr[i], &clientlen);
+        // Allocation mémoire
+        clientaddr[nbClients] = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
+        // Récupération du message dans le buffer.
+        if(recvfrom(sock, buf, MSGSIZE, 0, (struct sockaddr *)clientaddr[nbClients], &clientlen)<0)
+			perror("Error recvfrom : L41 - server.c");
         
-        // Si la socket renvoi un @, ca veux dire qu'il s'est connecté.
-        if ( buf[0] == '@' ) {	
-			i++;
-		} else {
-			sleep(2);
-			printf("Envoi du message ne cours...\n");
-			/*
-			 * sendto: réecrit à tout les clients ce qu'il a reçu
-			 */
-			length = i;
-			for(int k = 0; k < length; k++) {
-				n = sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr *) clientaddr[k], clientlen);
-				if (n < 0)
-					perror("error sendto");
-				else
-					printf("Message n°%d envoyé...\n",k);
-			}
-		}
+        if (buf[0] == '@') // Si le serveur a recu le paquet de reconnaissance ...
+			nbClients++; // ... on augmente le nombre de clients
+		else
+			for(int k = 0; k < nbClients; k++) // Pour chaques clients ...
+				sendto(sock, buf, strlen(buf), 0, (struct sockaddr *) clientaddr[k], clientlen); // ... on envoie un paquet contenant le buffer
+				
+		printf("Message(s) envoyé(s)...\n");
     }
-
-    //Fermeture de la socket
-    close (sockfd);
-
+    close (sock);
+    
     return 0;
 }
